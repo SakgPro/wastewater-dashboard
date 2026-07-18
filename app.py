@@ -10,7 +10,8 @@ st.set_page_config(page_title="Campus Health Alert Dashboard", layout="wide")
 @st.cache_data
 def load_data():
     df = pd.read_csv("synthetic_wastewater_data.csv")
-    df['Date'] = pd.to_datetime(df['Date'])
+    df['Date'] = pd.to_datetime(df['Date'],errors='coerce')
+    df = df.dropna(subset=['Date'])
     df = apply_thresholds(df)
     return df
 

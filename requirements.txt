@@ -6,3 +6,5 @@ folium
 streamlit-folium
 python-pptx
 reportlab
+fastapi
+uvicorn 

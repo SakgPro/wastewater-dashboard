@@ -33,7 +33,7 @@ def send_alert_email(location, ph_level, target_email):
         msg['From'] = sender_email
         msg['To'] = target_email
 
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465, source_address=('0.0.0.0', 0))
         server.login(sender_email, sender_password)
         server.send_message(msg)
         server.quit()

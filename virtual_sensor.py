@@ -3,7 +3,7 @@ import random
 import requests
 from datetime import datetime
 
-API_URL = "http://127.0.0.1:8000/api/sensor_data"
+API_URL = "https://wastewater-api-ymfn.onrender.com/api/sensor_data"
 
 CAMPUS_NODES = [
     "Surajtal",
@@ -42,7 +42,7 @@ def simulate_node(location, is_anomaly):
 
 if __name__ == "__main__":
     print("Virtual IoT Fleet Initialized.")
-    print("Transmitting telemetry every 5 seconds...")
+    print("Transmitting telemetry every 2 seconds...")
     
     cycle_count = 1
     
@@ -54,4 +54,4 @@ if __name__ == "__main__":
         simulate_node(target_node, trigger_spike)
         
         cycle_count += 1
-        time.sleep(5)
+        time.sleep(2)

@@ -53,7 +53,7 @@ def receive_data(payload: SensorPayload, background_tasks: BackgroundTasks):
     
     with open("synthetic_wastewater_data.csv", "a", newline="") as f:
         writer = csv.writer(f)
-        if not file_exists:
+        if not file_exists: 
             writer.writerow(["Date", "Location", "pH_Level", "Viral_Load_cp_ml", "Turbidity_NTU", "Antibiotics_ng_L"])
             
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -62,14 +62,14 @@ def receive_data(payload: SensorPayload, background_tasks: BackgroundTasks):
     if payload.ph_level > 9.0 or payload.ph_level < 6.0:
         config_file = "alert_config.json"
         notifications_enabled = True
-        target = "sakshamg389@gmail.com"
+        target = "b25172@students.iitmandi.ac.in"
 
         if os.path.exists(config_file):
             try:
                 with open(config_file, "r") as config_in:
                     config = json.load(config_in)
                     notifications_enabled = config.get("notifications_enabled", True)
-                    target = config.get("target_email", "sakshamg389@gmail.com")
+                    target = config.get("target_email", "b25172@students.iitmandi.ac.in")
             except Exception:
                 pass
                 

@@ -65,3 +65,7 @@ async def receive_data(payload: SensorPayload):
                     cooldown_tracker[payload.location] = current_time
 
     return {"status": "success", "recorded_ph": payload.ph_level}
+
+@app.get("/healthz")
+async def health_check():
+    return {"status": "healthy"}

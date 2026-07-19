@@ -42,7 +42,7 @@ def send_alert_email(location, ph_level, target_email):
         print(f"Failed to send email: {e}")
 
 @app.post("/api/sensor_data")
-async def receive_data(payload: SensorPayload):
+def receive_data(payload: SensorPayload):
     file_exists = os.path.isfile("synthetic_wastewater_data.csv")
     
     with open("synthetic_wastewater_data.csv", "a", newline="") as f:

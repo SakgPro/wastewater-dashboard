@@ -99,11 +99,20 @@ st.markdown("Proactive environmental monitoring for early disease detection and 
 st.sidebar.header("Filter Data")
 locations = df['Location'].dropna().unique()
 selected_loc = st.sidebar.selectbox("Select Location", ["All Campus"] + list(locations))
+time_range = st.sidebar.radio("Select Time Range", ["7 Days", "30 Days", "All Time"], index=1)
 
 if selected_loc != "All Campus":
     filtered_df = df[df['Location'] == selected_loc]
 else:
     filtered_df = df
+
+max_date = df['Date'].max()
+if time_range == "7 Days":
+    cutoff_date = max_date - pd.Timedelta(days=7)
+    filtered_df = filtered_df[filtered_df['Date'] >= cutoff_date]
+elif time_range == "30 Days":
+    cutoff_date = max_date - pd.Timedelta(days=30)
+    filtered_df = filtered_df[filtered_df['Date'] >= cutoff_date]
 
 latest_data = df.sort_values('Date').groupby('Location').tail(1)
 
@@ -162,7 +171,7 @@ with tab1:
 
     st.divider()
     
-    st.subheader("Biomarker Trends (30 Days)")
+    st.subheader(f"Biomarker Trends ({time_range})")
     fig_viral = px.line(filtered_df, x='Date', y='Viral_Load_cp_ml', color='Location', title="Viral Load Over Time")
     fig_ph = px.line(filtered_df, x='Date', y='pH_Level', color='Location', title="pH Level Over Time")
     
@@ -175,7 +184,7 @@ with tab1:
     with col_chart2:
         st.plotly_chart(fig_ph, use_container_width=True)
         
-    st.subheader("Recent Alert Logs")
+    st.subheader(f"Alert Logs ({time_range})")
     alert_data = filtered_df[filtered_df['Status'] != 'Green'].sort_values(by='Date', ascending=False)
     st.dataframe(alert_data[['Date', 'Location', 'Status', 'Alert_Details', 'Viral_Load_cp_ml', 'pH_Level']], use_container_width=True)
 

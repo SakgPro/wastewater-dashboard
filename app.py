@@ -3,25 +3,101 @@ import pandas as pd
 import plotly.express as px
 import folium
 from streamlit_folium import st_folium
-from alerts import apply_thresholds
 
 st.set_page_config(page_title="Campus Health Alert Dashboard", layout="wide")
 
-@st.cache_data
+def get_alert_status(ph, viral_load, turbidity, antibiotics, location):
+    alerts = []
+    suggested_action = "Maintain standard operational sampling."
+    status = "Green"
+    
+    if pd.isna(ph):
+        ph = 7.0
+    if pd.isna(viral_load):
+        viral_load = 0.0
+    if pd.isna(turbidity):
+        turbidity = 0.0
+    if pd.isna(antibiotics):
+        antibiotics = 0.0
+        
+    if ph < 6.0 or ph > 9.0:
+        alerts.append("Red (Critical pH Hazard)")
+        suggested_action = "Dispatch maintenance to inspect for industrial/lab chemical dumping."
+    elif ph < 6.5 or ph > 8.5:
+        alerts.append("Yellow (pH Warning)")
+        suggested_action = "Monitor node for continued acidity/alkalinity shifts."
+
+    if viral_load > 400:
+        alerts.append("Red (Active Viral Outbreak)")
+        suggested_action = "Alert campus clinic. Deploy randomized clinical screening in this building."
+    elif viral_load > 180:
+        alerts.append("Yellow (Elevated Viral Shedding)")
+        suggested_action = "Increase sanitization of common washrooms and mess halls."
+
+    if antibiotics > 120:
+        alerts.append("Yellow (High Antibiotic Load)")
+        if "Active Viral Outbreak" not in "".join(alerts):
+            suggested_action = "Investigate potential bacterial outbreak in this building."
+
+    limit = 18.0 if type(location) == str and "Mess" in location else 12.0
+    if turbidity > limit:
+        alerts.append("Red (Sewer/Organic Congestion)")
+        suggested_action = "Clear grease traps and inspect primary outflow pipes."
+
+    if any("Red" in alert for alert in alerts):
+        status = "Red"
+    elif any("Yellow" in alert for alert in alerts):
+        status = "Yellow"
+        
+    if status == "Green":
+        alerts = ["Normal Baseline"]
+
+    return status, alerts, suggested_action
+
+def apply_thresholds(df):
+    status_list = []
+    details_list = []
+    actions_list = []
+    
+    for _, row in df.iterrows():
+        status, details, action = get_alert_status(
+            row['pH_Level'], 
+            row['Viral_Load_cp_ml'], 
+            row['Turbidity_NTU'], 
+            row['Antibiotics_ng_L'],
+            row['Location']
+        )
+        status_list.append(status)
+        details_list.append(", ".join(details))
+        actions_list.append(action)
+        
+    df['Status'] = status_list
+    df['Alert_Details'] = details_list
+    df['Suggested_Action'] = actions_list
+    return df
+
 def load_data():
     df = pd.read_csv("synthetic_wastewater_data.csv")
-    df['Date'] = pd.to_datetime(df['Date'],errors='coerce')
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+    df['pH_Level'] = pd.to_numeric(df['pH_Level'], errors='coerce')
+    df['Viral_Load_cp_ml'] = pd.to_numeric(df['Viral_Load_cp_ml'], errors='coerce')
+    df['Turbidity_NTU'] = pd.to_numeric(df['Turbidity_NTU'], errors='coerce')
+    df['Antibiotics_ng_L'] = pd.to_numeric(df['Antibiotics_ng_L'], errors='coerce')
     df = df.dropna(subset=['Date'])
     df = apply_thresholds(df)
     return df
 
 df = load_data()
 
+st.sidebar.title("Controls")
+if st.sidebar.button("Force Sync Data"):
+    st.rerun()
+
 st.title("🦠 Campus Wastewater Health Alert Dashboard")
 st.markdown("Proactive environmental monitoring for early disease detection and sanitary management.")
 
 st.sidebar.header("Filter Data")
-locations = df['Location'].unique()
+locations = df['Location'].dropna().unique()
 selected_loc = st.sidebar.selectbox("Select Location", ["All Campus"] + list(locations))
 
 if selected_loc != "All Campus":
@@ -29,8 +105,7 @@ if selected_loc != "All Campus":
 else:
     filtered_df = df
 
-latest_date = df['Date'].max()
-latest_data = df[df['Date'] == latest_date]
+latest_data = df.sort_values('Date').groupby('Location').tail(1)
 
 tab1, tab2, tab3 = st.tabs(["📊 Live Dashboard", "⚠️ Response Protocols", "📑 Deployment & Ethics"])
 
@@ -74,13 +149,7 @@ with tab1:
             color_map = {"Green": "green", "Yellow": "orange", "Red": "red"}
             marker_color = color_map.get(status, "blue")
             
-            popup_html = f"""
-            <strong>{node_name}</strong><br>
-            Status: {status}<br>
-            Viral Load: {viral} cp/ml<br>
-            pH Level: {ph}<br>
-            Details: {details}
-            """
+            popup_html = f"<strong>{node_name}</strong><br>Status: {status}<br>Viral Load: {viral} cp/ml<br>pH Level: {ph}<br>Details: {details}"
             
             folium.Marker(
                 location=[coords["lat"], coords["lon"]],
@@ -120,35 +189,21 @@ with tab2:
             st.error(f"🚨 **CRITICAL ALERT at {row['Location']}**")
             st.markdown(f"**Trigger:** {row['Alert_Details']}")
             if "Viral" in row['Alert_Details']:
-                st.markdown("- **Action 1:** Dispatch medical personnel for randomized clinical screening in this building.")
-                st.markdown("- **Action 2:** Increase sanitization frequency of common areas and washrooms.")
-                st.markdown("- **Action 3:** Issue precautionary advisory to residents to report flu-like symptoms.")
+                st.markdown("- Action 1: Dispatch medical personnel for randomized clinical screening in this building.")
+                st.markdown("- Action 2: Increase sanitization frequency of common areas and washrooms.")
+                st.markdown("- Action 3: Issue precautionary advisory to residents to report flu-like symptoms.")
             if "pH" in row['Alert_Details'] or "Chemical" in row['Alert_Details']:
-                st.markdown("- **Action 1:** Dispatch plumbing crew to inspect for illegal chemical dumping or pipe corrosion.")
-                st.markdown("- **Action 2:** Temporarily halt greywater recycling from this node.")
+                st.markdown("- Action 1: Dispatch plumbing crew to inspect for illegal chemical dumping or pipe corrosion.")
+                st.markdown("- Action 2: Temporarily halt greywater recycling from this node.")
     else:
         st.success("✅ No critical alerts active. Standard operational protocols apply.")
 
 with tab3:
     st.header("Campus Deployment Plan")
-    st.markdown("""
-    **Phase 1: Node Identification (Weeks 1-2)**
-    - Map key effluent convergence points outside high-density hostels and academic blocks.
-    
-    **Phase 2: Hardware Installation (Weeks 3-4)**
-    - Install autosamplers and IoT multi-parameter sondes at mapped nodes.
-    
-    **Phase 3: Sampling Routine & Dashboard Integration (Weeks 5-8)**
-    - Establish a twice-weekly physical sampling schedule for PCR viral load testing.
-    - Connect IoT sensor telemetry directly via API to this Streamlit monitoring dashboard.
-    """)
+    st.markdown("**Phase 1: Node Identification (Weeks 1-2)**\n- Map key effluent convergence points outside high-density hostels and academic blocks.\n\n**Phase 2: Hardware Installation (Weeks 3-4)**\n- Install autosamplers and IoT multi-parameter sondes at mapped nodes.\n\n**Phase 3: Sampling Routine & Dashboard Integration (Weeks 5-8)**\n- Establish a twice-weekly physical sampling schedule for PCR viral load testing.\n- Connect IoT sensor telemetry directly via API to this Streamlit monitoring dashboard.")
     
     st.divider()
     
     st.header("Privacy and Ethics Concerns")
     st.warning("**Data Anonymization Protocol Active**")
-    st.markdown("""
-    - **Building-Level Aggregation:** Sensors are placed at the main building outflow. We do not track individual floors or wings, making it mathematically impossible to trace an infection back to a specific student.
-    - **Targeted Biomarkers Only:** Laboratory analysis is restricted exclusively to agreed-upon public health markers.
-    - **Transparent Communication:** The student body is fully informed regarding what data is being collected and how it is used to safeguard campus health.
-    """)
+    st.markdown("- **Building-Level Aggregation:** Sensors are placed at the main building outflow. We do not track individual floors or wings, making it mathematically impossible to trace an infection back to a specific student.\n- **Targeted Biomarkers Only:** Laboratory analysis is restricted exclusively to agreed-upon public health markers.\n- **Transparent Communication:** The student body is fully informed regarding what data is being collected and how it is used to safeguard campus health.")

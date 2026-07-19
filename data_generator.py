@@ -49,7 +49,7 @@ def generate_telemetry_data(days=30):
                 antibiotic_level = base_abx
                 
             data.append({
-                "Date": date.strftime('%Y-%m-%d'),
+                "Date": date.strftime('%Y-%m-%d %H:%M:%S'),
                 "Location": node,
                 "pH_Level": round(ph, 2),
                 "Turbidity_NTU": round(turbidity, 2),

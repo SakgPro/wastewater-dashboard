@@ -21,7 +21,10 @@ def send_alert_email_http(location, ph_level, target_email):
     api_key = os.environ.get("EMAIL_API_KEY")
     sender_email = os.environ.get("SENDER_EMAIL", "sakshamg389@gmail.com")
     
-    if not api_key or not sender_email or not target_email:
+    print(f"DEBUG: Preparing email. Sender: {sender_email}, Target: {target_email}")
+    
+    if not api_key:
+        print("DEBUG ERROR: EMAIL_API_KEY is missing from environment variables!")
         return
 
     url = "https://api.brevo.com/v3/smtp/email"
@@ -38,9 +41,11 @@ def send_alert_email_http(location, ph_level, target_email):
     }
     
     try:
-        requests.post(url, headers=headers, json=payload, timeout=10)
-    except Exception:
-        pass
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        print(f"DEBUG BREVO STATUS CODE: {response.status_code}")
+        print(f"DEBUG BREVO RESPONSE: {response.text}")
+    except Exception as e:
+        print(f"DEBUG REQUEST FAILED: {e}")
 
 @app.post("/api/sensor_data")
 def receive_data(payload: SensorPayload, background_tasks: BackgroundTasks):

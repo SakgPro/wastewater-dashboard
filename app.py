@@ -116,7 +116,7 @@ elif time_range == "30 Days":
 
 latest_data = df.sort_values('Date').groupby('Location').tail(1)
 
-tab1, tab2, tab3 = st.tabs(["📊 Live Dashboard", "⚠️ Response Protocols", "📑 Deployment & Ethics"])
+tab1, tab2 = st.tabs(["📊 Live Dashboard", "📑 Deployment & Ethics"])
 
 with tab1:
     col1, col2, col3 = st.columns(3)
@@ -130,21 +130,36 @@ with tab1:
     
     st.divider()
 
+    active_reds = latest_data[latest_data['Status'] == 'Red']
+    if not active_reds.empty:
+        st.error(f"🚨 {len(active_reds)} Critical Alert(s) Detected! Immediate action required.")
+        for _, row in active_reds.iterrows():
+            with st.expander(f"View Action Plan: {row['Location']} - {row['Alert_Details']}", expanded=True):
+                st.write(f"**Suggested Action:** {row['Suggested_Action']}")
+                if "Viral" in row['Alert_Details']:
+                    st.write("- Action 1: Dispatch medical personnel for randomized clinical screening in this building.")
+                    st.write("- Action 2: Increase sanitization frequency of common areas and washrooms.")
+                    st.write("- Action 3: Issue precautionary advisory to residents to report flu-like symptoms.")
+                if "pH" in row['Alert_Details'] or "Chemical" in row['Alert_Details']:
+                    st.write("- Action 1: Dispatch plumbing crew to inspect for illegal chemical dumping or pipe corrosion.")
+                    st.write("- Action 2: Temporarily halt greywater recycling from this node.")
+        st.divider()
+
     st.subheader("📍 Campus Node Monitoring Map")
     
     geo_nodes = {
-        "Surajtal": {"lat": 31.7754, "lon": 76.9855},
-        "Dashir": {"lat": 31.7759, "lon": 76.9850},
-        "Gauri Kund": {"lat": 31.7761, "lon": 76.9845},
-        "Suvalsar": {"lat": 31.7765, "lon": 76.9840},
-        "Vyas Kund": {"lat": 31.7770, "lon": 76.9835},
-        "Cedar Mess": {"lat": 31.7745, "lon": 76.9860},
-        "Maple Mess": {"lat": 31.7748, "lon": 76.9865},
-        "North Academic Block": {"lat": 31.7735, "lon": 76.9840},
-        "South Academic Block": {"lat": 31.7725, "lon": 76.9830}
+        "Surajtal": {"lat": 31.7816, "lon": 76.9966},
+        "Dashir": {"lat": 31.7818, "lon": 76.9968},
+        "Gauri Kund": {"lat": 31.7718, "lon": 76.9838},
+        "Suvalsar": {"lat": 31.7720, "lon": 76.9840},
+        "Vyas Kund": {"lat": 31.7722, "lon": 76.9842},
+        "Cedar Mess": {"lat": 31.7715, "lon": 76.9845},
+        "Maple Mess": {"lat": 31.7810, "lon": 76.9960},
+        "North Academic Block": {"lat": 31.7814, "lon": 76.9964},
+        "South Academic Block": {"lat": 31.7716, "lon": 76.9836}
     }
-    
-    m = folium.Map(location=[31.7754, 76.9855], zoom_start=16, tiles="OpenStreetMap")
+        
+    m = folium.Map(location=[31.7765, 76.9900], zoom_start=15, tiles="OpenStreetMap")
     
     for node_name, coords in geo_nodes.items():
         node_latest = latest_data[latest_data['Location'] == node_name]
@@ -189,25 +204,6 @@ with tab1:
     st.dataframe(alert_data[['Date', 'Location', 'Status', 'Alert_Details', 'Viral_Load_cp_ml', 'pH_Level']], use_container_width=True)
 
 with tab2:
-    st.header("Suggested Actions After Warning Signals")
-    st.markdown("Automated response plans based on active threshold breaches.")
-    
-    active_reds = latest_data[latest_data['Status'] == 'Red']
-    if not active_reds.empty:
-        for _, row in active_reds.iterrows():
-            st.error(f"🚨 **CRITICAL ALERT at {row['Location']}**")
-            st.markdown(f"**Trigger:** {row['Alert_Details']}")
-            if "Viral" in row['Alert_Details']:
-                st.markdown("- Action 1: Dispatch medical personnel for randomized clinical screening in this building.")
-                st.markdown("- Action 2: Increase sanitization frequency of common areas and washrooms.")
-                st.markdown("- Action 3: Issue precautionary advisory to residents to report flu-like symptoms.")
-            if "pH" in row['Alert_Details'] or "Chemical" in row['Alert_Details']:
-                st.markdown("- Action 1: Dispatch plumbing crew to inspect for illegal chemical dumping or pipe corrosion.")
-                st.markdown("- Action 2: Temporarily halt greywater recycling from this node.")
-    else:
-        st.success("✅ No critical alerts active. Standard operational protocols apply.")
-
-with tab3:
     st.header("Campus Deployment Plan")
     st.markdown("**Phase 1: Node Identification (Weeks 1-2)**\n- Map key effluent convergence points outside high-density hostels and academic blocks.\n\n**Phase 2: Hardware Installation (Weeks 3-4)**\n- Install autosamplers and IoT multi-parameter sondes at mapped nodes.\n\n**Phase 3: Sampling Routine & Dashboard Integration (Weeks 5-8)**\n- Establish a twice-weekly physical sampling schedule for PCR viral load testing.\n- Connect IoT sensor telemetry directly via API to this Streamlit monitoring dashboard.")
     

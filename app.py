@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import folium
 from streamlit_folium import st_folium
+import json
+import os
 
 st.set_page_config(page_title="Campus Health Alert Dashboard", layout="wide")
 
@@ -93,13 +95,27 @@ st.sidebar.title("Controls")
 if st.sidebar.button("Force Sync Data"):
     st.rerun()
 
-st.title("🦠 Campus Wastewater Health Alert Dashboard")
-st.markdown("Proactive environmental monitoring for early disease detection and sanitary management.")
-
 st.sidebar.header("Filter Data")
 locations = df['Location'].dropna().unique()
 selected_loc = st.sidebar.selectbox("Select Location", ["All Campus"] + list(locations))
 time_range = st.sidebar.radio("Select Time Range", ["7 Days", "30 Days", "All Time"], index=1)
+
+st.sidebar.divider()
+st.sidebar.header("Alert Configurations")
+
+config_file = "alert_config.json"
+if os.path.exists(config_file):
+    with open(config_file, "r") as f:
+        config = json.load(f)
+else:
+    config = {"notifications_enabled": False, "target_email": "sakshamg389@gmail.com"}
+
+notifications_enabled = st.sidebar.checkbox("Enable Email Notifications", value=config.get("notifications_enabled", False))
+target_email = st.sidebar.text_input("Alert Receiving Email", value=config.get("target_email", "sakshamg389@gmail.com"))
+
+if notifications_enabled != config.get("notifications_enabled") or target_email != config.get("target_email"):
+    with open(config_file, "w") as f:
+        json.dump({"notifications_enabled": notifications_enabled, "target_email": target_email}, f)
 
 if selected_loc != "All Campus":
     filtered_df = df[df['Location'] == selected_loc]
@@ -115,6 +131,9 @@ elif time_range == "30 Days":
     filtered_df = filtered_df[filtered_df['Date'] >= cutoff_date]
 
 latest_data = df.sort_values('Date').groupby('Location').tail(1)
+
+st.title("🦠 Campus Wastewater Health Alert Dashboard")
+st.markdown("Proactive environmental monitoring for early disease detection and sanitary management.")
 
 tab1, tab2 = st.tabs(["📊 Live Dashboard", "📑 Deployment & Ethics"])
 
@@ -206,9 +225,3 @@ with tab1:
 with tab2:
     st.header("Campus Deployment Plan")
     st.markdown("**Phase 1: Node Identification (Weeks 1-2)**\n- Map key effluent convergence points outside high-density hostels and academic blocks.\n\n**Phase 2: Hardware Installation (Weeks 3-4)**\n- Install autosamplers and IoT multi-parameter sondes at mapped nodes.\n\n**Phase 3: Sampling Routine & Dashboard Integration (Weeks 5-8)**\n- Establish a twice-weekly physical sampling schedule for PCR viral load testing.\n- Connect IoT sensor telemetry directly via API to this Streamlit monitoring dashboard.")
-    
-    st.divider()
-    
-    st.header("Privacy and Ethics Concerns")
-    st.warning("**Data Anonymization Protocol Active**")
-    st.markdown("- **Building-Level Aggregation:** Sensors are placed at the main building outflow. We do not track individual floors or wings, making it mathematically impossible to trace an infection back to a specific student.\n- **Targeted Biomarkers Only:** Laboratory analysis is restricted exclusively to agreed-upon public health markers.\n- **Transparent Communication:** The student body is fully informed regarding what data is being collected and how it is used to safeguard campus health.")

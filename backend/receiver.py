@@ -1,8 +1,12 @@
-import os
-import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
+import smtplib
+from email.message import EmailMessage
+import csv
 from datetime import datetime
+import json
+import os
+import time
 
 app = FastAPI()
 
@@ -12,23 +16,52 @@ class SensorPayload(BaseModel):
     ph_level: float
     turbidity_ntu: float
 
+cooldown_tracker = {}
+
+def send_alert_email(location, ph_level, target_email):
+    sender_email = "wastewaterdashboard@gmail.com"
+    sender_password = "jehu vtxd gbru ujvb"
+    
+    msg = EmailMessage()
+    msg.set_content(f"CRITICAL HAZARD DETECTED\n\nLocation: {location}\npH Level: {ph_level}\n\nImmediate maintenance crew dispatch required to inspect for chemical dumping.")
+    msg['Subject'] = f"🚨 URGENT: Red Alert at {location}"
+    msg['From'] = sender_email
+    msg['To'] = target_email
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        print(f"Alert email successfully dispatched to {target_email}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
 @app.post("/api/sensor_data")
-async def receive_sensor_data(payload: SensorPayload):
-    file_path = os.path.join(os.getcwd(), "synthetic_wastewater_data.csv")
+async def receive_data(payload: SensorPayload):
+    file_exists = os.path.isfile("synthetic_wastewater_data.csv")
     
-    df = pd.read_csv(file_path)
-    
-    new_row = df[df['Location'] == payload.location].iloc[-1].copy()
-    
-    new_row['Date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_row['pH_Level'] = payload.ph_level
-    new_row['Turbidity_NTU'] = payload.turbidity_ntu
-    
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    df.to_csv(file_path, index=False)
-    
-    return {
-        "status": "success", 
-        "location": payload.location, 
-        "file_written_to": file_path
-    }
+    with open("synthetic_wastewater_data.csv", "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["Date", "Location", "pH_Level", "Viral_Load_cp_ml", "Turbidity_NTU", "Antibiotics_ng_L"])
+            
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        writer.writerow([timestamp, payload.location, payload.ph_level, 0.0, payload.turbidity_ntu, 0.0])
+
+    if payload.ph_level > 9.0 or payload.ph_level < 6.0:
+        config_file = "alert_config.json"
+        if os.path.exists(config_file):
+            with open(config_file, "r") as config_in:
+                config = json.load(config_in)
+                
+            if config.get("notifications_enabled"):
+                target = config.get("target_email")
+                current_time = time.time()
+                last_alert = cooldown_tracker.get(payload.location, 0)
+                
+                if current_time - last_alert > 300:
+                    send_alert_email(payload.location, payload.ph_level, target)
+                    cooldown_tracker[payload.location] = current_time
+
+    return {"status": "success", "recorded_ph": payload.ph_level}

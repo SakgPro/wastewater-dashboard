@@ -18,6 +18,9 @@ Want to see it working right now? You do not need to download anything; I have a
 * **The Live Dashboard:** Just click the link to open the web app in your browser. You will immediately see the real-time map, active alerts, and trend charts I set up. It updates on its own!
 * **The Backend API Endpoint:** If you click this link, you will see the raw JSON data of all the recorded sensor readings. If you are a developer, you can actually use this URL in your own scripts (using Python's `requests` library), `curl` commands, or Postman to programmatically grab my database.
 
+### How to View and Run the Project
+* **Live Dashboard:** [https://wastewater-dashboard-7kpwrsrsfrqeacdejgu8xn.streamlit.app/](https://wastewater-dashboard-7kpwrsrsfrqeacdejgu8xn.streamlit.app/)
+To see the project in action, first open the [Live Streamlit Dashboard]() in your web browser to view the real-time monitoring interface. You can verify that the cloud backend is actively running by opening the [Backend Health Check](https://wastewater-api-ymfn.onrender.com/healthz) link in your browser, which should display `{"status": "healthy"}`. Once confirmed, to simulate the hardware sensors and start sending live telemetry to the server, open a terminal on your local machine and execute the sensor script by running `python virtual_sensor.py`. As the script transmits payloads, the web dashboard will automatically update to plot the incoming data and dispatch email alerts when critical thresholds are breached.
 ---
 
 ## 📂 Under the Hood: How I Structured the Files

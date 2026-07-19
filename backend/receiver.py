@@ -19,7 +19,7 @@ cooldown_tracker = {}
 
 def send_alert_email_http(location, ph_level, target_email):
     api_key = os.environ.get("EMAIL_API_KEY")
-    sender_email = os.environ.get("SENDER_EMAIL")
+    sender_email = os.environ.get("SENDER_EMAIL", "sakshamg389@gmail.com")
     
     if not api_key or not sender_email or not target_email:
         return
@@ -56,18 +56,25 @@ def receive_data(payload: SensorPayload, background_tasks: BackgroundTasks):
 
     if payload.ph_level > 9.0 or payload.ph_level < 6.0:
         config_file = "alert_config.json"
+        notifications_enabled = True
+        target = "sakshamg389@gmail.com"
+
         if os.path.exists(config_file):
-            with open(config_file, "r") as config_in:
-                config = json.load(config_in)
+            try:
+                with open(config_file, "r") as config_in:
+                    config = json.load(config_in)
+                    notifications_enabled = config.get("notifications_enabled", True)
+                    target = config.get("target_email", "sakshamg389@gmail.com")
+            except Exception:
+                pass
                 
-            if config.get("notifications_enabled"):
-                target = config.get("target_email")
-                current_time = time.time()
-                last_alert = cooldown_tracker.get(payload.location, 0)
-                
-                if current_time - last_alert > 300:
-                    background_tasks.add_task(send_alert_email_http, payload.location, payload.ph_level, target)
-                    cooldown_tracker[payload.location] = current_time
+        if notifications_enabled:
+            current_time = time.time()
+            last_alert = cooldown_tracker.get(payload.location, 0)
+            
+            if current_time - last_alert > 300:
+                background_tasks.add_task(send_alert_email_http, payload.location, payload.ph_level, target)
+                cooldown_tracker[payload.location] = current_time
 
     return {"status": "success", "recorded_ph": payload.ph_level}
 

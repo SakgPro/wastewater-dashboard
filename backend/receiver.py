@@ -19,8 +19,8 @@ class SensorPayload(BaseModel):
 cooldown_tracker = {}
 
 def send_alert_email(location, ph_level, target_email):
-    sender_email = "wastewaterdashboard@gmail.com"
-    sender_password = "jehu vtxd gbru ujvb"
+    sender_email = os.environ.get("SENDER_EMAIL")
+    sender_password = os.environ.get("SENDER_PASSWORD")
     
     msg = EmailMessage()
     msg.set_content(f"CRITICAL HAZARD DETECTED\n\nLocation: {location}\npH Level: {ph_level}\n\nImmediate maintenance crew dispatch required to inspect for chemical dumping.")

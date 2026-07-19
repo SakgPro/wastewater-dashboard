@@ -118,19 +118,23 @@ time_range = st.sidebar.radio("Select Time Range", ["7 Days", "30 Days", "All Ti
 st.sidebar.divider()
 st.sidebar.header("Alert Configurations")
 
-config_file = "alert_config.json"
-if os.path.exists(config_file):
-    with open(config_file, "r") as f:
-        config = json.load(f)
-else:
-    config = {"notifications_enabled": False, "target_email": "sakshamg389@gmail.com"}
+notifications_enabled = st.sidebar.checkbox("Enable Email Notifications", value=True)
+target_email = st.sidebar.text_input("Alert Receiving Email", value="b25172@students.iitmandi.ac.in")
 
-notifications_enabled = st.sidebar.checkbox("Enable Email Notifications", value=config.get("notifications_enabled", False))
-target_email = st.sidebar.text_input("Alert Receiving Email", value=config.get("target_email", "sakshamg389@gmail.com"))
-
-if notifications_enabled != config.get("notifications_enabled") or target_email != config.get("target_email"):
-    with open(config_file, "w") as f:
-        json.dump({"notifications_enabled": notifications_enabled, "target_email": target_email}, f)
+if st.sidebar.button("Save Configuration"):
+    payload = {
+        "notifications_enabled": notifications_enabled,
+        "target_email": target_email
+    }
+    try:
+        api_url = "https://wastewater-api-ymfn.onrender.com/api/update_config"
+        res = requests.post(api_url, json=payload, timeout=10)
+        if res.status_code == 200:
+            st.sidebar.success(f"Configuration updated! Alerts will be sent to {target_email}")
+        else:
+            st.sidebar.error("Failed to update backend configuration.")
+    except Exception as e:
+        st.sidebar.error(f"Error connecting to backend: {e}")
 
 st.title("🦠 Campus Wastewater Health Alert Dashboard")
 st.markdown("Proactive environmental monitoring for early disease detection and sanitary management.")

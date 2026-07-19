@@ -96,3 +96,17 @@ def download_data():
             data = list(reader)
         return data
     return []
+
+class ConfigPayload(BaseModel):
+    notifications_enabled: bool
+    target_email: str
+
+@app.post("/api/update_config")
+def update_config(payload: ConfigPayload):
+    config_data = {
+        "notifications_enabled": payload.notifications_enabled,
+        "target_email": payload.target_email
+    }
+    with open("alert_config.json", "w") as f:
+        json.dump(config_data, f)
+    return {"status": "config_updated", "new_target": payload.target_email}

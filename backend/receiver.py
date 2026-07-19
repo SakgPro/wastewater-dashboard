@@ -22,13 +22,17 @@ def send_alert_email(location, ph_level, target_email):
     sender_email = os.environ.get("SENDER_EMAIL")
     sender_password = os.environ.get("SENDER_PASSWORD")
     
-    msg = EmailMessage()
-    msg.set_content(f"CRITICAL HAZARD DETECTED\n\nLocation: {location}\npH Level: {ph_level}\n\nImmediate maintenance crew dispatch required to inspect for chemical dumping.")
-    msg['Subject'] = f"🚨 URGENT: Red Alert at {location}"
-    msg['From'] = sender_email
-    msg['To'] = target_email
+    if not sender_email or not sender_password or not target_email:
+        print("Alert Skipped: Missing environment variables or target email.")
+        return
 
     try:
+        msg = EmailMessage()
+        msg.set_content(f"CRITICAL HAZARD DETECTED\n\nLocation: {location}\npH Level: {ph_level}\n\nImmediate maintenance crew dispatch required to inspect for chemical dumping.")
+        msg['Subject'] = f"🚨 URGENT: Red Alert at {location}"
+        msg['From'] = sender_email
+        msg['To'] = target_email
+
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(sender_email, sender_password)
         server.send_message(msg)
